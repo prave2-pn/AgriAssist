@@ -1,0 +1,207 @@
+# Import Libraries
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
+# Simulated Dataset
+data = {
+    'Soil_Moisture': [20, 50, 10, 70, 30, 80, 15, 60, 25, 90],
+    'Temperature': [35, 28, 40, 25, 33, 22, 38, 26, 34, 20],
+    'Humidity': [30, 60, 20, 70, 40, 80, 25, 65, 35, 85],
+    'Pest_Density': [80, 10, 90, 5, 70, 0, 85, 15, 60, 2],
+    'Pesticide_Usage': [5, 2, 6, 1, 4, 0, 5, 2, 3, 0],
+    'Crop_Status': [0, 1, 0, 1, 0, 1, 0, 1, 0, 1]
+}
+
+df = pd.DataFrame(data)
+X = df[['Soil_Moisture', 'Temperature', 'Humidity', 'Pest_Density', 'Pesticide_Usage']]
+y = df['Crop_Status']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+crop_data = {
+    'Rice': {'demand_tons': 5000, 'market_price_per_kg': 40, 'yield_per_acre_kg': 2000},
+    'Wheat': {'demand_tons': 4000, 'market_price_per_kg': 35, 'yield_per_acre_kg': 1500},
+    'Tomatoes': {'demand_tons': 3000, 'market_price_per_kg': 50, 'yield_per_acre_kg': 10000},
+    'Chillies': {'demand_tons': 2000, 'market_price_per_kg': 80, 'yield_per_acre_kg': 800},
+    'Sugarcane': {'demand_tons': 6000, 'market_price_per_kg': 3, 'yield_per_acre_kg': 35000}
+}
+
+pesticide_data = {
+    'Rice': {'max': 4, 'min': 2, 'suitable': 'Malathion'},
+    'Wheat': {'max': 3, 'min': 1.5, 'suitable': 'Chlorpyrifos'},
+    'Tomatoes': {'max': 5, 'min': 2.5, 'suitable': 'Neem Oil'},
+    'Chillies': {'max': 6, 'min': 3, 'suitable': 'Spinosad'},
+    'Sugarcane': {'max': 4, 'min': 2, 'suitable': 'Imidacloprid'}
+}
+
+valid_crops = ['Rice', 'Wheat', 'Tomatoes', 'Chillies', 'Sugarcane']
+
+def scan_crop(crop_type):
+    print(f"Scanning {crop_type}... (Simulated for demo)")
+    soil_moisture = np.random.uniform(10, 90)
+    temperature = np.random.uniform(20, 40)
+    humidity = np.random.uniform(20, 85)
+    pest_density = np.random.uniform(0, 90)
+    soil_fertility = np.random.uniform(20, 100)
+    while True:
+        try:
+            pesticide_usage = float(input(f"Enter current Pesticide Usage for {crop_type} (liters/acre): "))
+            if pesticide_usage < 0:
+                print("Error: Pesticide usage cannot be negative")
+            else:
+                break
+        except ValueError:
+            print("Error: Please enter a valid number (ex: 2.5)")
+    return soil_moisture, temperature, humidity, pest_density, pesticide_usage, soil_fertility
+
+def farmer_crop_health_and_price(soil_moisture, temperature, humidity, pest_density, pesticide_usage, soil_fertility, crop_type):
+    input_data = np.array([[soil_moisture, temperature, humidity, pest_density, pesticide_usage]])
+    prediction = model.predict(input_data)[0]
+    status = "Good" if prediction == 1 else "Bad"
+    
+    irrigation_suggestion = ""
+    if soil_moisture < 30:
+        irrigation_suggestion = "Low soil moisture—irrigate immediately (20-30L/acre)."
+    elif soil_moisture > 80:
+        irrigation_suggestion = "High soil moisture—stop irrigation to avoid waterlogging."
+    else:
+        irrigation_suggestion = "Moisture levels optimal—maintain current schedule."
+    
+    max_pesticide = pesticide_data[crop_type]['max']
+    min_pesticide = pesticide_data[crop_type]['min']
+    suitable_pesticide = pesticide_data[crop_type]['suitable']
+    pesticide_suggestion = f"Recommended Pesticide: {suitable_pesticide}. "
+    if pest_density > 50:
+        if pesticide_usage < min_pesticide:
+            pesticide_suggestion += f"High pest density—apply {min_pesticide}-5L/acre."
+        elif pesticide_usage > max_pesticide:
+            pesticide_suggestion += f"Pesticide overuse—reduce to {max_pesticide}L/acre."
+        else:
+            pesticide_suggestion += "Pesticide sufficient—monitor effectiveness."
+    elif pest_density > 20:
+        if pesticide_usage < min_pesticide:
+            pesticide_suggestion += f"Moderate pest risk—apply {min_pesticide}L/acre."
+        else:
+            pesticide_suggestion += "Pest levels manageable—current usage fine."
+    else:
+        if pesticide_usage > max_pesticide:
+            pesticide_suggestion += f"No pest threat—reduce to {max_pesticide}L/acre."
+        else:
+            pesticide_suggestion += "Pest levels low—no extra pesticide needed."
+    
+    soil_suggestion = ""
+    if soil_fertility < 40:
+        soil_suggestion = "Soil fertility low—apply organic manure (10 tons/acre) or NPK fertilizer (50 kg/acre)."
+    elif soil_fertility < 60:
+        soil_suggestion = "Soil fertility moderate—add compost (5 tons/acre) to improve."
+    else:
+        soil_suggestion = "Soil fertility good—maintain current practices."
+    
+    crop_info = crop_data[crop_type]
+    market_price = crop_info['market_price_per_kg']
+    yield_per_acre = crop_info['yield_per_acre_kg']
+    
+    while True:
+        try:
+            asking_price = float(input(f"Set your Asking Price for {crop_type} (₹/kg) [Market Price: ₹{market_price}/kg]: "))
+            if asking_price < 0:
+                print("Error: Asking price cannot be negative")
+            else:
+                break
+        except ValueError:
+            print("Error: Please enter a valid number (ex: 45.0)")
+    
+    fair_price = (asking_price + market_price) / 2
+    if asking_price > market_price * 1.2:
+        fair_price = market_price * 1.1
+        price_note = "Your price too high—adjusted to fair rate."
+    elif asking_price < market_price * 0.8:
+        fair_price = market_price * 0.9
+        price_note = "Your price too low—adjusted for fairness."
+    else:
+        price_note = "Fair price set—good deal."
+    
+    total_revenue = yield_per_acre * fair_price
+    cost_per_acre = 5000 + (pesticide_usage * 200)
+    profit_per_acre = total_revenue - cost_per_acre
+    
+    return status, irrigation_suggestion, pesticide_suggestion, soil_suggestion, market_price, fair_price, profit_per_acre, price_note, asking_price
+
+def customer_crop_connect(crop_type, farmer_asking_price):
+    crop_info = crop_data[crop_type]
+    demand = crop_info['demand_tons'] * 1000
+    market_price = crop_info['market_price_per_kg']
+    fair_price = (farmer_asking_price + market_price) / 2
+    if farmer_asking_price > market_price * 1.2:
+        fair_price = market_price * 1.1
+        price_note = "Farmer price too high—adjusted to fair rate."
+    elif farmer_asking_price < market_price * 0.8:
+        fair_price = market_price * 0.9
+        price_note = "Farmer price too low—adjusted for fairness."
+    else:
+        price_note = "Fair price set—good deal for both."
+    savings = market_price - fair_price
+    return demand, market_price, fair_price, savings, price_note
+
+# Main App Logic
+print("Welcome to AgriAssist!")
+user_type = input("Select User Type (Farmer/Customer): ").capitalize()
+
+if user_type == "Farmer":
+    print("\n--- Farmer Mode ---")
+    while True:
+        crop_type = input("Crop Type (Rice/Wheat/Tomatoes/Chillies/Sugarcane): ").capitalize()
+        if crop_type in valid_crops:
+            break
+        print("Error: Invalid crop type. Choose from: Rice, Wheat, Tomatoes, Chillies, Sugarcane")
+    
+    soil_moisture, temperature, humidity, pest_density, pesticide_usage, soil_fertility = scan_crop(crop_type)
+    status, irrigation_suggestion, pesticide_suggestion, soil_suggestion, market_price, fair_price, profit_per_acre, price_note, asking_price = farmer_crop_health_and_price(
+        soil_moisture, temperature, humidity, pest_density, pesticide_usage, soil_fertility, crop_type
+    )
+    
+    print(f"\n--- Scan Results for {crop_type} ---")
+    print(f"Detected Conditions: Soil Moisture: {soil_moisture:.1f}% | Temperature: {temperature:.1f}°C | Humidity: {humidity:.1f}%")
+    print(f"Pest Density: {pest_density:.1f}/100m² | Soil Fertility: {soil_fertility:.1f}% | Pesticide Usage: {pesticide_usage}L/acre")
+    print(f"Crop Health Status: {status}")
+    print(f"Irrigation Action: {irrigation_suggestion}")
+    print(f"Pest Control Action: {pesticide_suggestion}")
+    print(f"Soil Fertility Action: {soil_suggestion}")
+    print(f"Market Price: ₹{market_price}/kg")
+    print(f"Your Asking Price: ₹{asking_price}/kg")
+    print(f"Fair Sale Price: ₹{fair_price:.2f}/kg ({price_note})")
+    print(f"Estimated Profit: ₹{profit_per_acre:,.0f}/acre")
+
+elif user_type == "Customer":
+    print("\n--- Customer Mode ---")
+    while True:
+        crop_type = input("Crop Type (Rice/Wheat/Tomatoes/Chillies/Sugarcane): ").capitalize()
+        if crop_type in valid_crops:
+            break
+        print("Error: Invalid crop type. Choose from: Rice, Wheat, Tomatoes, Chillies, Sugarcane")
+    
+    while True:
+        try:
+            farmer_asking_price = float(input(f"Farmer Asking Price for {crop_type} (₹/kg): "))
+            if farmer_asking_price < 0:
+                print("Error: Asking price cannot be negative")
+            else:
+                break
+        except ValueError:
+            print("Error: Please enter a valid number (ex: 70.0)")
+    
+    demand, market_price, fair_price, savings, price_note = customer_crop_connect(crop_type, farmer_asking_price)
+    
+    print(f"\n--- Customer Report for {crop_type} ---")
+    print(f"Demand: {crop_data[crop_type]['demand_tons']} tons/year")
+    print(f"Market Price: ₹{market_price}/kg")
+    print(f"Farmer Asking Price: ₹{farmer_asking_price}/kg")
+    print(f"Fair Price: ₹{fair_price:.2f}/kg ({price_note})")
+    print(f"Savings: ₹{savings:.2f}/kg compared to market")
+else:
+    print("Invalid selection! Choose Farmer or Customer.")
